@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion de Stock (JS Local) - La 6ème étoile</title>
+    <!-- On importe une police depuis Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Le code CSS amélioré est ici -->
+    <style>
+        /* Définition des animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Style général */
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f4f7fc;
+            color: #333;
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        header {
+            background: linear-gradient(90deg, #4e54c8, #8f94fb);
+            color: white;
+            text-align: center;
+            padding: 1.5rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            margin: 0;
+            font-weight: 700;
+        }
+
+        main {
+            max-width: 1200px;
+            margin: auto;
+            padding: 0 1rem;
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+        }
+
+        .actions-column {
+            flex: 1;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .stock-column {
+            flex: 2;
+            min-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .card {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            padding: 1.5rem 2rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: fadeInUp 0.5s ease-out forwards;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+            margin-top: 0;
+            color: #4e54c8;
+            font-size: 1.25rem;
+            font-weight: 600;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Icônes pour les titres */
+        .card h2::before {
+            margin-right: 0.75rem;
+            font-size: 1.5rem;
+            vertical-align: middle;
+        }
+        #form-add-card h2::before { content: '📝'; }
+        #form-edit-card h2::before { content: '✏️'; }
+        #form-out-card h2::before { content: '📤'; }
+        #stock-card h2::before { content: '📊'; }
+        #history-card h2::before { content: '📜'; }
+
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="date"],
+        input[type="time"],
+        select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 1rem;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            background-color: white;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #4e54c8;
+            box-shadow: 0 0 0 3px rgba(78, 84, 200, 0.2);
+        }
+
+        .btn {
+            display: inline-block;
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, background-size 0.4s ease;
+            background-size: 100% 100%;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn:hover {
+             background-size: 200% 100%;
+        }
+
+        .btn-add { background-image: linear-gradient(to right, #1d976c, #93f9b9, #1d976c); }
+        .btn-edit { background-image: linear-gradient(to right, #0052D4, #65C7F7, #0052D4); }
+        .btn-out { background-image: linear-gradient(to right, #ff9966, #ff5e62, #ff9966); }
+
+        .btn-delete {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+            color: #e74c3c;
+            transition: color 0.3s;
+        }
+        .btn-delete:hover {
+            color: #c0392b;
+        }
+
+        /* Style du tableau de stock */
+        .stock-list {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        thead {
+            background-color: #4e54c8;
+            color: white;
+        }
+
+        thead th {
+            font-weight: 600;
+        }
+
+        tbody tr {
+            transition: background-color 0.3s ease;
+        }
+
+        tbody tr:hover {
+            background-color: #f0f2f5;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        td:last-child {
+            text-align: center;
+        }
+
+        /* Style pour les messages de notification */
+        .notification {
+            padding: 1rem;
+            border-radius: 8px;
+            color: white;
+            margin: 0 1rem 1rem;
+            text-align: center;
+            display: none; /* Caché par défaut */
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            font-weight: 600;
+        }
+        .notification.show {
+            display: block;
+            animation: slideDown 0.4s ease-out forwards;
+        }
+        .notification.success { background: linear-gradient(90deg, #1d976c, #2aae7d); }
+        .notification.error { background: linear-gradient(90deg, #d31027, #ea384d); }
+        .notification.warning { background: linear-gradient(90deg, #ff9966, #fca67b); color: white;}
+
+        .history-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+        }
+        .history-controls .btn {
+            width: auto;
+            padding: 8px 15px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>⭐ Gestion de Stock Moderne ⭐</h1>
+    </header>
+
+    <main>
+        <div id="notification-area" class="notification"></div>
+
+        <div class="container">
+            <div class="actions-column">
+                <div class="card" id="form-add-card">
+                    <h2>Ajouter un Article</h2>
+                    <form id="form-add">
+                        <label for="code_article">Code Article</label>
+                        <input type="text" name="code_article" required>
+                        <label for="nom_article">Nom Article</label>
+                        <input type="text" name="nom_article" required>
+                        <div style="display: flex; gap: 1rem;">
+                            <div style="flex: 2;">
+                                <label for="quantite">Quantité</label>
+                                <input type="number" name="quantite" required min="0" step="any">
+                            </div>
+                            <div style="flex: 1;">
+                                <label for="unite">Unité</label>
+                                <select name="unite">
+                                    <option value="pièce">pièce</option>
+                                    <option value="kg">kg</option>
+                                    <option value="L">L</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-add">Ajouter</button>
+                    </form>
+                </div>
+
+                <div class="card" id="form-edit-card">
+                    <h2>Modifier une Quantité</h2>
+                    <form id="form-edit">
+                        <label for="code_article_modif">Code Article</label>
+                        <input type="text" name="code_article_modif" required>
+                        <label for="quantite_modif">Nouvelle Quantité</label>
+                        <input type="number" name="quantite_modif" required min="0" step="any">
+                        <button type="submit" class="btn btn-edit">Modifier</button>
+                    </form>
+                </div>
+
+                <div class="card" id="form-out-card">
+                    <h2>Sortie d'Article</h2>
+                    <form id="form-out">
+                        <label for="date">Date</label>
+                        <input type="date" name="date" required>
+                        <label for="heure">Heure</label>
+                        <input type="time" name="heure" required>
+                        <label for="code_article_sortie">Code Article</label>
+                        <input type="text" name="code_article_sortie" required>
+                        <label for="quantite_sortie">Quantité Sortie</label>
+                        <input type="number" name="quantite_sortie" required min="0.01" step="any">
+                        <label for="preleve_par">Prélevé par</label>
+                        <input type="text" name="preleve_par" required>
+                        <label for="destination">Destination</label>
+                        <input type="text" name="destination" required>
+                        <button type="submit" class="btn btn-out">Effectuer la Sortie</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="stock-column">
+                <div class="card" id="stock-card">
+                    <h2>État du Stock</h2>
+                    <div class="stock-list">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Nom</th>
+                                    <th>Quantité</th>
+                                    <th>Unité</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="stock-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card" id="history-card">
+                    <h2>Historique des Prélèvements</h2>
+                    <div class="history-controls">
+                        <input type="date" id="search-date" style="margin-bottom: 0;">
+                        <button id="search-btn" class="btn btn-edit">Chercher</button>
+                        <button id="reset-search-btn" class="btn btn-add">Voir Tout</button>
+                        <button id="export-btn" class="btn btn-out" style="margin-left: auto;">Exporter en CSV</button>
+                    </div>
+                    <div class="stock-list">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Heure</th>
+                                    <th>Code</th>
+                                    <th>Nom</th>
+                                    <th>Qté</th>
+                                    <th>Prélevé par</th>
+                                    <th>Destination</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const STOCK_KEY = 'monStockApp_stock';
+            const SORTIES_KEY = 'monStockApp_sorties';
+
+            const formAdd = document.getElementById('form-add');
+            const formEdit = document.getElementById('form-edit');
+            const formOut = document.getElementById('form-out');
+            const stockTableBody = document.getElementById('stock-table-body');
+            const historyTableBody = document.getElementById('history-table-body');
+            const notificationArea = document.getElementById('notification-area');
+            const searchDateInput = document.getElementById('search-date');
+            const searchBtn = document.getElementById('search-btn');
+            const resetSearchBtn = document.getElementById('reset-search-btn');
+            const exportBtn = document.getElementById('export-btn');
+
+            let notificationTimeout;
+
+            // --- Fonctions de gestion des données ---
+            const getStock = () => JSON.parse(localStorage.getItem(STOCK_KEY)) || {};
+            const saveStock = (stock) => localStorage.setItem(STOCK_KEY, JSON.stringify(stock));
+            const getSorties = () => JSON.parse(localStorage.getItem(SORTIES_KEY)) || [];
+            const saveSorties = (sorties) => localStorage.setItem(SORTIES_KEY, JSON.stringify(sorties));
+
+            // --- Fonctions d'affichage ---
+            const showNotification = (message, type = 'success') => {
+                clearTimeout(notificationTimeout);
+                notificationArea.textContent = message;
+                notificationArea.className = `notification ${type} show`;
+                notificationTimeout = setTimeout(() => {
+                    notificationArea.classList.remove('show');
+                }, 3000);
+            };
+
+            const displayStock = () => {
+                const stock = getStock();
+                stockTableBody.innerHTML = '';
+                if (Object.keys(stock).length === 0) {
+                    stockTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Le stock est vide.</td></tr>`;
+                    return;
+                }
+                const sortedStock = Object.entries(stock).sort((a, b) => a[0].localeCompare(b[0]));
+                for (const [code, data] of sortedStock) {
+                    const row = `
+                        <tr>
+                            <td>${code}</td>
+                            <td>${data.nom_article}</td>
+                            <td>${data.quantite}</td>
+                            <td>${data.unite}</td>
+                            <td>
+                                <button class="btn-delete" data-code="${code}" title="Supprimer l'article">🗑️</button>
+                            </td>
+                        </tr>
+                    `;
+                    stockTableBody.innerHTML += row;
+                }
+            };
+
+            const displayHistory = (filterDate = null) => {
+                let sorties = getSorties();
+                if (filterDate) {
+                    sorties = sorties.filter(s => s.date === filterDate);
+                }
+                historyTableBody.innerHTML = '';
+                if (sorties.length === 0) {
+                    historyTableBody.innerHTML = `<tr><td colspan="7" style="text-align:center;">${filterDate ? "Aucun prélèvement pour cette date." : "Aucun prélèvement enregistré."}</td></tr>`;
+                    return;
+                }
+                sorties.reverse().forEach(sortie => {
+                    const row = `
+                        <tr>
+                            <td>${sortie.date}</td>
+                            <td>${sortie.heure}</td>
+                            <td>${sortie.code_article}</td>
+                            <td>${sortie.nom_article}</td>
+                            <td>${sortie.quantite_sortie}</td>
+                            <td>${sortie.preleve_par}</td>
+                            <td>${sortie.destination}</td>
+                        </tr>
+                    `;
+                    historyTableBody.innerHTML += row;
+                });
+            };
+
+            // --- Logique des formulaires ---
+            formAdd.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const formData = new FormData(formAdd);
+                const code = formData.get('code_article').trim();
+                const nom = formData.get('nom_article').trim();
+                const quantite = parseFloat(formData.get('quantite'));
+                const unite = formData.get('unite');
+
+                if (!code || !nom) {
+                    showNotification('Le code et le nom ne peuvent pas être vides.', 'warning');
+                    return;
+                }
+
+                const stock = getStock();
+                if (stock[code]) {
+                    showNotification(`L'article avec le code '${code}' existe déjà.`, 'warning');
+                } else {
+                    stock[code] = { nom_article: nom, quantite: quantite, unite: unite };
+                    saveStock(stock);
+                    showNotification('Article ajouté avec succès !', 'success');
+                    displayStock();
+                    formAdd.reset();
+                }
+            });
+
+            formEdit.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const formData = new FormData(formEdit);
+                const code = formData.get('code_article_modif').trim();
+                const quantite = parseFloat(formData.get('quantite_modif'));
+                const stock = getStock();
+                if (stock[code]) {
+                    stock[code].quantite = quantite;
+                    saveStock(stock);
+                    showNotification('Quantité modifiée avec succès !', 'success');
+                    displayStock();
+                    formEdit.reset();
+                } else {
+                    showNotification(`Erreur : Article '${code}' non trouvé.`, 'error');
+                }
+            });
+
+            formOut.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const formData = new FormData(formOut);
+                const code = formData.get('code_article_sortie').trim();
+                const quantiteSortie = parseFloat(formData.get('quantite_sortie'));
+                const stock = getStock();
+                if (!stock[code]) {
+                    showNotification(`Erreur : Article '${code}' introuvable.`, 'error');
+                    return;
+                }
+                if (stock[code].quantite < quantiteSortie) {
+                    showNotification('Erreur : Stock insuffisant.', 'error');
+                    return;
+                }
+                stock[code].quantite -= quantiteSortie;
+                saveStock(stock);
+                const sorties = getSorties();
+                sorties.push({
+                    date: formData.get('date'),
+                    heure: formData.get('heure'),
+                    code_article: code,
+                    nom_article: stock[code].nom_article,
+                    quantite_sortie: quantiteSortie,
+                    preleve_par: formData.get('preleve_par'),
+                    destination: formData.get('destination')
+                });
+                saveSorties(sorties);
+                showNotification('Sortie enregistrée avec succès !', 'success');
+                displayStock();
+                displayHistory();
+                formOut.reset();
+                setDateTime();
+            });
+
+            // --- NOUVELLES FONCTIONNALITÉS ---
+
+            // Supprimer un article
+            stockTableBody.addEventListener('click', (e) => {
+                if (e.target.classList.contains('btn-delete')) {
+                    const code = e.target.dataset.code;
+                    // Pour une meilleure UX, une confirmation est recommandée.
+                    // if (confirm(`Voulez-vous vraiment supprimer l'article ${code} ?`)) {
+                        const stock = getStock();
+                        delete stock[code];
+                        saveStock(stock);
+                        showNotification(`Article ${code} supprimé.`, 'success');
+                        displayStock();
+                    // }
+                }
+            });
+
+            // Recherche par date
+            searchBtn.addEventListener('click', () => {
+                const date = searchDateInput.value;
+                if(date) {
+                    displayHistory(date);
+                } else {
+                    showNotification('Veuillez sélectionner une date pour la recherche.', 'warning');
+                }
+            });
+
+            resetSearchBtn.addEventListener('click', () => {
+                searchDateInput.value = '';
+                displayHistory();
+            });
+
+            // Export en CSV (CODE CORRIGÉ)
+            exportBtn.addEventListener('click', () => {
+                const sorties = getSorties();
+                if (sorties.length === 0) {
+                    showNotification("L'historique est vide, rien à exporter.", 'warning');
+                    return;
+                }
+
+                const escapeCSV = (field) => {
+                    if (field === null || field === undefined) return '';
+                    let str = String(field);
+                    if (str.includes(';') || str.includes('"') || str.includes('\n')) {
+                        str = str.replace(/"/g, '""');
+                        return `"${str}"`;
+                    }
+                    return str;
+                };
+
+                const header = ["Date", "Heure", "Code Article", "Nom Article", "Quantite Sortie", "Preleve Par", "Destination"];
+                const headerString = header.join(';') + '\n';
+
+                const csvRows = sorties.map(s => {
+                    const row = [
+                        escapeCSV(s.date),
+                        escapeCSV(s.heure),
+                        escapeCSV(s.code_article),
+                        escapeCSV(s.nom_article),
+                        escapeCSV(s.quantite_sortie),
+                        escapeCSV(s.preleve_par),
+                        escapeCSV(s.destination)
+                    ];
+                    return row.join(';');
+                });
+
+                const csvContent = csvRows.join('\n');
+                const csv = headerString + csvContent;
+
+                const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a");
+
+                if (link.download !== undefined) {
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute("href", url);
+                    link.setAttribute("download", "historique_prelevements.csv");
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } else {
+                     showNotification("La fonction de téléchargement n'est pas supportée par votre navigateur.", "error");
+                }
+            });
+
+            // --- INITIALISATION ---
+            const setDateTime = () => {
+                const now = new Date();
+                const dateField = document.querySelector('input[name="date"]');
+                const timeField = document.querySelector('input[name="heure"]');
+                now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                dateField.value = now.toISOString().slice(0,10);
+                timeField.value = now.toISOString().slice(11,16);
+            };
+
+            displayStock();
+            displayHistory();
+            setDateTime();
+        });
+    </script>
+</body>
+</html>
